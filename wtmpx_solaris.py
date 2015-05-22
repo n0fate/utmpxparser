@@ -55,8 +55,6 @@ contentlist = []
 dumppage = []
 entries, dumppage = who()
 
-# f = open("output.bin", "wb")
-
 for i in range(0, len(entries)):
 	iuttype = int(entries[i]['type'])
 	
@@ -89,12 +87,6 @@ for i in range(0, len(entries)):
 	line.append('')
 	contentlist.append(line)
 
-# 	if len(entries[i]['ipaddress']) == 0 and entries[i]['user'] != 'cjones' and entries[i]['user'] != 'skyoo':
-# 		f.write(dumppage[i])
-# 	if entries[i]['ipaddress'] == '8.80.4.21:0' and entries[i]['user'] != 'cjones' and entries[i]['user'] != 'skyoo':
-# 		f.write(dumppage[i])
-
-# f.close()
 
 mszlist = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
 columnprint(headerlist, contentlist, mszlist)
