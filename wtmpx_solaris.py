@@ -22,7 +22,9 @@ PAGESIZE = 372
 #         char    ut_host[257];           /* remote host name */
 # };
 
-ut_type = ["UT_UNKNOWN", "RUN_LVL", "BOOT_TIME", "NEW_TIME", "OLD_TIME", "INIT_PROCESS", "LOGIN_PROCESS", "USER_PROCESS", "DEAD_PROCESS", "ACCOUNTING", "HEADER"]
+# https://java.net/projects/solaris/sources/on-src/content/usr/src/head/utmpx.h
+
+ut_type = ["EMPTY", "RUN_LVL", "BOOT_TIME", "OLD_TIME", "NEW_TIME", "INIT_PROCESS", "LOGIN_PROCESS", "USER_PROCESS", "DEAD_PROCESS", "ACCOUNTING", "DOWN_TIME"]
 
 def who():
     dumppage = []
@@ -34,7 +36,7 @@ def who():
     out     = []
     for entry in [utmpstr[i:i+PAGESIZE] for i in range(0,len(utmpstr),PAGESIZE)]:
     	dumppage.append(entry)
-    	data = struct.unpack("32s4s32sih6xiii20x2x16s20x222x",entry)
+    	data = struct.unpack(">32s4s32sih6xiii20x2x16s20x222x",entry) # For SPARC System(Big-Endian)
     	out.append(
     		dict([[name[i],cut(data[i])]
     			for i in range(0,len(data))]))
@@ -48,7 +50,7 @@ utmpfile = sys.argv[1]
 
 entries = ''
 
-headerlist = ["user", "id","session", "terminal", "pid", "start time(utc+0)", "status", "ip", ""]
+headerlist = ["user", "id","session", "type", "terminal", "pid", "start time(utc+0)", "status", "ip", ""]
 contentlist = []
 dumppage = []
 entries, dumppage = who()
@@ -56,27 +58,34 @@ entries, dumppage = who()
 # f = open("output.bin", "wb")
 
 for i in range(0, len(entries)):
-	#print int(entries[i]['type'])
-	# if ut_type[int(entries[i]['type'])] == 'BOOT_TIME':
-	# 	entries[i]['user'] = 'reboot'
-	# 	entries[i]['id'] = '~'
-	# 	strtype = '~'
-	# elif ut_type[int(entries[i]['type'])] == 'USER_PROCESS':
-	# 	strtype = 'still logged in'
-	# else:
-	# 	strtype = ''
+	iuttype = int(entries[i]['type'])
+	
+	try:
+		if ut_type[iuttype] == 'BOOT_TIME':
+			entries[i]['user'] = 'reboot'
+			entries[i]['id'] = '~'
+			strtype = '~'
+		elif ut_type[iuttype] == 'USER_PROCESS':
+			strtype = 'still logged in'
+		else:
+			strtype = ''
+	except IndexError:
+		strtype = ''
 	strtype = ''
-	lotime = strftime("%a %b %d %H:%M:%S",time.gmtime(float(entries[i]['sec'])))
+	lotime = strftime("%Y %m %d %H:%M:%S",time.gmtime(float(entries[i]['sec'])))
 	#eline = entries[i]['user']+'\t'+entries[i]['id']+'\t'+entries[i]['line']+'\t'+entries[i]['pid']+'\t'+ut_type[int(entries[i]['type'])]+'\t'+lotime+'\t'+entries[i]['usec']+'\t'+entries[i]['ipaddress']
 	line = ['%s'%entries[i]['user']]
 	line.append('%s'%entries[i]['id'])
-	line.append('%s'%entries[i]['session'])
-	#line.append('%s'%ut_type[int(entries[i]['type'])])
+	line.append('%d'%int(entries[i]['session']))
+	try:
+		line.append('%s'%ut_type[iuttype])
+	except IndexError:
+		line.append('')
 	line.append('%s'%entries[i]['line'])
 	line.append('%d'%int(entries[i]['pid']))
 	line.append('%s.%03d'%(lotime, int(entries[i]['usec'])/1000))
 	line.append('%s'%strtype)
-	line.append('%s(%d)'%(entries[i]['ipaddress'], len(entries[i]['ipaddress'])))
+	line.append('%s'%(entries[i]['ipaddress']))
 	line.append('')
 	contentlist.append(line)
 
@@ -87,7 +96,7 @@ for i in range(0, len(entries)):
 
 # f.close()
 
-mszlist = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+mszlist = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
 columnprint(headerlist, contentlist, mszlist)
 
 #EOF
